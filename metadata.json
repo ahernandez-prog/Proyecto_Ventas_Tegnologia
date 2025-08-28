@@ -1,0 +1,5 @@
+{
+  "name": "Ventas de Tecnología",
+  "description": "Un visualizador interactivo para un pipeline de datos (ETL) sobre ventas de tecnología, demostrando la arquitectura Medallion (Bronze, Silver, Gold) con explicaciones, ejemplos de código y un dashboard de análisis.",
+  "requestFramePermissions": []
+}
