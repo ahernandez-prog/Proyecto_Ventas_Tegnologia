@@ -8,6 +8,16 @@ La aplicación está pensada para dos audiencias principales:
 
 ---
 
+## 🚀 ¡Lanza el Visualizador Ahora!
+
+Haz clic en el siguiente enlace para abrir y ejecutar la aplicación directamente en tu navegador:
+
+**[Abrir Visualizador en StackBlitz](https://stackblitz.com/github/ahernandez-prog/Proyecto_Ventas_Tegnologia)**
+
+> **Nota:** Como este repositorio es privado, la primera vez que abras el enlace, StackBlitz te pedirá que inicies sesión con tu cuenta de GitHub y que autorices la aplicación. Es un proceso seguro y necesario para que pueda acceder al código.
+
+---
+
 ## ✨ Características Principales
 
 ### 1. Vista Dual (Arquitectura vs. Implementación)
@@ -38,25 +48,3 @@ La visualización está construida con un stack moderno y eficiente:
 - **TypeScript:** Para añadir seguridad de tipos y mejorar la robustez y mantenibilidad del código.
 - **Tailwind CSS:** Para un diseño rápido, moderno y responsive.
 - **Recharts:** Para la creación de los gráficos interactivos del dashboard.
-
----
-
-## 🚀 Cómo Poner en Marcha el Visualizador
-
-No necesitas instalar nada en tu ordenador para ejecutar esta aplicación. Puedes lanzarla directamente desde el repositorio de GitHub.
-
-### Método Online (Recomendado con StackBlitz)
-
-1.  Copia la URL de este repositorio de GitHub.
-2.  Abre una nueva pestaña en tu navegador y ve a la siguiente URL, reemplazando `<URL_DEL_REPO_GITHUB>` con la que copiaste:
-    ```
-    https://stackblitz.com/github/<tu-usuario>/<nombre-del-repo>
-    ```
-3.  ¡Listo! StackBlitz abrirá el proyecto y verás la aplicación funcionando en segundos.
-
-### Método Local (con VS Code)
-
-1.  Clona o descarga este repositorio en tu máquina.
-2.  Abre la carpeta del proyecto con Visual Studio Code.
-3.  Instala la extensión **"Live Server"**.
-4.  Haz clic derecho sobre el fichero `index.html` y selecciona "Open with Live Server".
