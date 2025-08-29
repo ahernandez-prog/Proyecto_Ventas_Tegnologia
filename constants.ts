@@ -221,68 +221,77 @@ export const CLOUDBUILD_YAML_CODE = `steps:
 # Este trigger se conecta al repositorio de GitHub y se ejecuta en cada push a la rama 'main'.
 `;
 
-
-// Helper function to generate random data
 const generateRandomData = (): Transaction[] => {
-  const customers = ['Cliente A', 'Cliente B', 'Cliente C', 'Cliente D'];
-  const sellers = ['Ana García', 'Carlos Herreros', 'Marina Sanz', 'Emma Torres'];
+  const customers = ['Cliente A', 'Cliente B', 'Cliente C', 'Cliente D', 'Cliente E', 'Cliente F', 'Cliente G', 'Cliente H'];
+  const sellers = ['Ana García', 'Carlos Herreros', 'Marina Sanz', 'Emma Torres', 'Juan Pérez', 'Laura Gómez', 'Ricardo Vidal', 'Sofía Nuñez'];
   const products = [
     { name: 'Smartphone X1', category: 'Teléfonos', cost: 600, price: 800 },
     { name: 'Laptop Pro', category: 'Ordenadores', cost: 1100, price: 1500 },
     { name: 'Auriculares Z', category: 'Accesorios', cost: 80, price: 150 },
     { name: 'Tablet S', category: 'Tablets', cost: 400, price: 600 },
+    { name: 'Monitor 4K', category: 'Accesorios', cost: 350, price: 500 },
   ];
   const countries = ['España', 'México', 'Argentina', 'Colombia'];
+  const spanishCities = ['Madrid', 'Barcelona', 'Valencia', 'Sevilla', 'Bilbao', 'Málaga', 'Zaragoza'];
   const data: Transaction[] = [];
 
-  for (let i = 0; i < 50; i++) {
+  for (let i = 0; i < 150; i++) {
     const product = products[Math.floor(Math.random() * products.length)];
-    const quantity = Math.floor(Math.random() * 2) + 1;
+    const quantity = Math.floor(Math.random() * 3) + 1;
     const grossRevenue = product.price * quantity;
     const discount = Math.random() > 0.7 ? grossRevenue * 0.1 : 0;
     const revenue = grossRevenue - discount;
     const margin = revenue - (product.cost * quantity);
-    const isReturn = Math.random() > 0.9;
+    const isReturn = Math.random() > 0.95;
     
     const date = new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1);
+    const country = countries[Math.floor(Math.random() * countries.length)];
+    const customer = customers[Math.floor(Math.random() * customers.length)];
+    const seller = sellers[Math.floor(Math.random() * sellers.length)];
+    
+    let transaction: Transaction;
 
     if (isReturn) {
-        data.push({
+        transaction = {
             id: `RET-${i.toString().padStart(4, '0')}`,
             date: date.toISOString().split('T')[0],
-            customer: customers[Math.floor(Math.random() * customers.length)],
-            seller: sellers[Math.floor(Math.random() * sellers.length)],
+            customer: customer,
+            seller: seller,
             product: product.name,
             category: product.category,
             revenue: -revenue,
             grossRevenue: -grossRevenue,
             margin: -margin,
             type: 'Devolución',
-            country: countries[Math.floor(Math.random() * countries.length)],
-        });
+            country: country,
+        };
     } else {
-        data.push({
+        transaction = {
             id: i.toString().padStart(4, '0'),
             date: date.toISOString().split('T')[0],
-            customer: customers[Math.floor(Math.random() * customers.length)],
-            seller: sellers[Math.floor(Math.random() * sellers.length)],
+            customer: customer,
+            seller: seller,
             product: product.name,
             category: product.category,
             revenue: revenue,
             grossRevenue: grossRevenue,
             margin: margin,
             type: 'Venta',
-            country: countries[Math.floor(Math.random() * countries.length)],
-        });
+            country: country,
+        };
     }
+
+    if (country === 'España') {
+        transaction.city = spanishCities[Math.floor(Math.random() * spanishCities.length)];
+    }
+
+    data.push(transaction);
   }
   return data;
 };
 
 export const SAMPLE_DATA: Transaction[] = generateRandomData();
 
-
-// Calculate Key Metrics
 const totalGrossRevenue = SAMPLE_DATA.filter(d => d.type === 'Venta').reduce((sum, item) => sum + item.grossRevenue, 0);
 const totalRevenue = SAMPLE_DATA.reduce((sum, item) => sum + item.revenue, 0);
 const totalReturnsAmount = SAMPLE_DATA.filter(d => d.type === 'Devolución').reduce((sum, item) => sum + item.revenue, 0);

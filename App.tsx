@@ -1,6 +1,5 @@
-
-import React, { useState } from 'react';
-import { PIPELINE_STAGES, SQL_QUERIES, SAMPLE_DATA, KEY_METRICS, ORCHESTRATION_GOVERNANCE, AIRFLOW_DAG_CODE, CLOUDBUILD_YAML_CODE } from './constants';
+import React, { useState, useEffect, useMemo } from 'react';
+import { PIPELINE_STAGES, SQL_QUERIES, SAMPLE_DATA, ORCHESTRATION_GOVERNANCE, AIRFLOW_DAG_CODE, CLOUDBUILD_YAML_CODE } from './constants';
 import type { PipelineStage, Transaction } from './types';
 import PipelineStageCard from './components/PipelineStageCard';
 import CodeBlock from './components/CodeBlock';
@@ -10,61 +9,119 @@ import { BarChart, Bar, LineChart, Line, PieChart, Pie, XAxis, YAxis, CartesianG
 
 type View = 'architecture' | 'implementation';
 
-const App: React.FC = () => {
-  const [activeView, setActiveView] = useState<View>('architecture');
+// He movido la lógica de negocio a un custom hook o funciones para mayor claridad.
+const useFilteredData = () => {
+  const [data, setData] = useState<Transaction[]>([]);
 
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF'];
+  useEffect(() => {
+    // Filtramos los datos una sola vez al cargar el componente para optimizar
+    const filtered = SAMPLE_DATA.filter(item => item.country === 'España');
+    setData(filtered);
+  }, []);
 
-  const revenueByCategory = SAMPLE_DATA.reduce((acc: { [key: string]: number }, item: Transaction) => {
-    if (item.type === 'Venta') {
-      acc[item.category] = (acc[item.category] || 0) + item.revenue;
-    }
-    return acc;
-  }, {});
-  
-  const revenueByCategoryData = Object.keys(revenueByCategory).map(category => ({
-    name: category,
-    ingresos: parseFloat(revenueByCategory[category].toFixed(2))
-  }));
+  // Usamos useMemo para memorizar los cálculos y evitar recálculos innecesarios
+  const calculatedData = useMemo(() => {
+    // KPIs de Rentabilidad
+    const totalSales = data.filter(item => item.type === 'Venta');
+    const totalReturns = data.filter(item => item.type === 'Devolución');
+    const netRevenue = totalSales.reduce((sum, item) => sum + item.revenue, 0);
+    const totalMargin = totalSales.reduce((sum, item) => sum + item.margin, 0);
+    const avgMarginPercentage = netRevenue > 0 ? (totalMargin / netRevenue) * 100 : 0;
+    const returnRate = totalSales.length > 0 ? (totalReturns.length / totalSales.length) * 100 : 0;
 
-  const transactionsByCountry = SAMPLE_DATA.reduce((acc: { [key: string]: number }, item: Transaction) => {
-    acc[item.country] = (acc[item.country] || 0) + 1;
-    return acc;
-  }, {});
+    // Gráfico de Contribución al Margen por Categoría
+    const marginByCategory = totalSales.reduce((acc: { [key: string]: number }, item) => {
+      acc[item.category] = (acc[item.category] || 0) + item.margin;
+      return acc;
+    }, {});
+    const marginByCategoryData = Object.keys(marginByCategory).map(category => ({
+      name: category,
+      margen: parseFloat(marginByCategory[category].toFixed(2))
+    }));
 
-  const transactionsByCountryData = Object.keys(transactionsByCountry).map(country => ({
-    name: country,
-    value: transactionsByCountry[country]
-  }));
-  
-  const sellerPerformance = SAMPLE_DATA.reduce((acc: { [key: string]: { totalRevenue: number, salesCount: number } }, item: Transaction) => {
-    if (item.type === 'Venta') {
-        if (!acc[item.seller]) {
-            acc[item.seller] = { totalRevenue: 0, salesCount: 0 };
+    // Gráfico de Top 5 Vendedores por Margen de Ganancia
+    const sellerPerformance = totalSales.reduce((acc: { [key: string]: number }, item) => {
+      acc[item.seller] = (acc[item.seller] || 0) + item.margin;
+      return acc;
+    }, {});
+    const top5SellersByMargin = Object.entries(sellerPerformance)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5)
+      .map(([seller, margin]) => ({
+        name: seller.split(' ').slice(0, 2).join(' '),
+        margen: parseFloat(margin.toFixed(2))
+      }));
+      
+    // Gráfico de Top 5 Clientes por Margen de Ganancia
+    const customerPerformance = totalSales.reduce((acc: { [key: string]: number }, item) => {
+        acc[item.customer] = (acc[item.customer] || 0) + item.margin;
+        return acc;
+    }, {});
+    const top5CustomersByMargin = Object.entries(customerPerformance)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5)
+        .map(([customer, margin]) => ({
+            name: customer,
+            margen: parseFloat(margin.toFixed(2))
+        }));
+
+    // Gráfico de Ventas por Ciudad (España)
+    const salesByCity = totalSales.reduce((acc: { [key: string]: number }, item) => {
+        if (item.city) {
+            acc[item.city] = (acc[item.city] || 0) + 1;
         }
-        acc[item.seller].totalRevenue += item.revenue;
-        acc[item.seller].salesCount += 1;
-    }
-    return acc;
+        return acc;
     }, {});
 
-    const sellerPerformanceData = Object.keys(sellerPerformance).map(seller => ({
-        name: seller.split(' ').slice(0, 2).join(' '), // Shorten name for chart
-        ingresos: parseFloat(sellerPerformance[seller].totalRevenue.toFixed(2)),
-        ventas: sellerPerformance[seller].salesCount
-    })).sort((a, b) => b.ingresos - a.ingresos);
+    const salesByCityData = Object.keys(salesByCity).map(city => ({
+        name: city,
+        value: salesByCity[city]
+    }));
+      
+    // Gráfico de Evolución del Margen Mensual (para datos de España)
+    const marginOverTime = totalSales.reduce((acc: { [key: string]: number }, item) => {
+        const month = item.date.substring(0, 7);
+        acc[month] = (acc[month] || 0) + item.margin;
+        return acc;
+    }, {});
+    const marginOverTimeData = Object.keys(marginOverTime).sort().map(month => ({
+        name: month,
+        margen: parseFloat(marginOverTime[month].toFixed(2))
+    }));
 
+    return {
+      netRevenue,
+      totalMargin,
+      avgMarginPercentage,
+      returnRate,
+      marginByCategoryData,
+      top5SellersByMargin,
+      top5CustomersByMargin,
+      salesByCityData,
+      marginOverTimeData,
+    };
+  }, [data]);
+  
+  return { ...calculatedData, filteredData: data };
+};
 
-  const marginOverTime = SAMPLE_DATA.reduce((acc: { [key: string]: number }, item: Transaction) => {
-    const month = item.date.substring(0, 7); // Asumiendo formato YYYY-MM-DD
-    acc[month] = (acc[month] || 0) + item.margin;
-    return acc;
-  }, {});
+const App: React.FC = () => {
+  const [activeView, setActiveView] = useState<View>('architecture');
+  const { 
+    filteredData,
+    netRevenue,
+    totalMargin,
+    avgMarginPercentage,
+    returnRate,
+    marginByCategoryData,
+    top5SellersByMargin,
+    top5CustomersByMargin,
+    salesByCityData,
+    marginOverTimeData,
+  } = useFilteredData();
 
-  const marginOverTimeData = Object.keys(marginOverTime).sort().map(month => ({
-    name: month,
-    margen: parseFloat(marginOverTime[month].toFixed(2))
-  }));
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF', '#FF6384', '#36A2EB'];
+  const PIE_COLORS = ['#60a5fa', '#34d399', '#facc15', '#fb923c', '#c084fc', '#f472b6', '#a5f3fc'];
 
   const ViewSwitcher = () => (
     <div className="mb-10 flex justify-center border-b border-slate-700">
@@ -138,48 +195,48 @@ const App: React.FC = () => {
 
               {/* Dashboard Section */}
               <section id="dashboard">
-                <h2 className="text-3xl font-bold text-cyan-400 mb-8 flex items-center gap-3"><DashboardIcon />Dashboard de Análisis (Datos Golden)</h2>
+                <h2 className="text-3xl font-bold text-cyan-400 mb-8 flex items-center gap-3"><DashboardIcon />Dashboard de Rentabilidad (Datos de España)</h2>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700">
-                        <h4 className="text-slate-400 text-sm font-medium">Ingresos Brutos (sin dto.)</h4>
-                        <p className="text-3xl font-bold text-sky-400">{KEY_METRICS.totalGrossRevenue.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</p>
+                        <h4 className="text-slate-400 text-sm font-medium">Ingresos Netos (Ventas)</h4>
+                        <p className="text-3xl font-bold text-green-400">{netRevenue.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</p>
                     </div>
                      <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700">
-                        <h4 className="text-slate-400 text-sm font-medium">Ingresos Netos (con dto.)</h4>
-                        <p className="text-3xl font-bold text-green-400">{KEY_METRICS.totalRevenue.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</p>
+                        <h4 className="text-slate-400 text-sm font-medium">Margen Total (Ventas)</h4>
+                        <p className="text-3xl font-bold text-amber-400">{totalMargin.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</p>
                     </div>
                     <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700">
-                        <h4 className="text-slate-400 text-sm font-medium">Importe Devoluciones</h4>
-                        <p className="text-3xl font-bold text-red-400">{KEY_METRICS.totalReturnsAmount.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</p>
+                        <h4 className="text-slate-400 text-sm font-medium">Margen Promedio (%)</h4>
+                        <p className="text-3xl font-bold text-blue-400">{avgMarginPercentage.toFixed(2)}%</p>
                     </div>
                     <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700">
-                        <h4 className="text-slate-400 text-sm font-medium">Margen Total</h4>
-                        <p className="text-3xl font-bold text-amber-400">{KEY_METRICS.totalMargin.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</p>
+                        <h4 className="text-slate-400 text-sm font-medium">Tasa de Devolución (%)</h4>
+                        <p className="text-3xl font-bold text-red-400">{returnRate.toFixed(2)}%</p>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
                   <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700">
-                    <h4 className="text-xl font-semibold mb-4 text-slate-200">Ingresos por Categoría</h4>
+                    <h4 className="text-xl font-semibold mb-4 text-slate-200">Contribución al Margen por Categoría</h4>
                     <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={revenueByCategoryData}>
+                      <BarChart data={marginByCategoryData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                         <XAxis dataKey="name" stroke="#9ca3af" />
                         <YAxis stroke="#9ca3af" tickFormatter={(value) => `€${value.toLocaleString('es-ES')}`} />
                         <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155' }} formatter={(value: number) => `${value.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}`} />
                         <Legend />
-                        <Bar dataKey="ingresos" fill="#22d3ee" />
+                        <Bar dataKey="margen" fill="#facc15" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
                   <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700">
-                    <h4 className="text-xl font-semibold mb-4 text-slate-200">Transacciones por País</h4>
+                    <h4 className="text-xl font-semibold mb-4 text-slate-200">Ventas por Ciudad (España)</h4>
                      <ResponsiveContainer width="100%" height={300}>
                         <PieChart>
-                          <Pie data={transactionsByCountryData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
-                            {transactionsByCountryData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          <Pie data={salesByCityData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
+                            {salesByCityData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                             ))}
                           </Pie>
                           <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155' }} />
@@ -188,18 +245,34 @@ const App: React.FC = () => {
                     </ResponsiveContainer>
                   </div>
                    <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700 col-span-1 lg:col-span-2">
-                     <h4 className="text-xl font-semibold mb-4 text-slate-200">Rendimiento por Vendedor</h4>
+                     <h4 className="text-xl font-semibold mb-4 text-slate-200">Top 5 Vendedores por Margen de Ganancia</h4>
                       <ResponsiveContainer width="100%" height={300}>
-                          <BarChart data={sellerPerformanceData} layout="vertical">
+                          <BarChart data={top5SellersByMargin} layout="vertical">
                               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                               <XAxis type="number" stroke="#9ca3af" tickFormatter={(value) => `€${value/1000}k`} />
                               <YAxis type="category" dataKey="name" stroke="#9ca3af" width={120} />
                               <Tooltip 
                                 contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155' }} 
-                                formatter={(value: number, name: string) => name === 'ingresos' ? `${value.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}` : value}
+                                formatter={(value: number) => `${value.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}`}
                               />
                               <Legend />
-                              <Bar dataKey="ingresos" fill="#22d3ee" name="Ingresos Totales" />
+                              <Bar dataKey="margen" fill="#22d3ee" name="Margen Total" />
+                          </BarChart>
+                      </ResponsiveContainer>
+                  </div>
+                  <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700 col-span-1 lg:col-span-2">
+                     <h4 className="text-xl font-semibold mb-4 text-slate-200">Top 5 Clientes por Margen de Ganancia</h4>
+                      <ResponsiveContainer width="100%" height={300}>
+                          <BarChart data={top5CustomersByMargin} layout="vertical">
+                              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                              <XAxis type="number" stroke="#9ca3af" tickFormatter={(value) => `€${value/1000}k`} />
+                              <YAxis type="category" dataKey="name" stroke="#9ca3af" width={120} />
+                              <Tooltip 
+                                contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155' }} 
+                                formatter={(value: number) => `${value.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}`}
+                              />
+                              <Legend />
+                              <Bar dataKey="margen" fill="#4ade80" name="Margen Total" />
                           </BarChart>
                       </ResponsiveContainer>
                   </div>
@@ -212,7 +285,7 @@ const App: React.FC = () => {
                         <YAxis stroke="#9ca3af" tickFormatter={(value) => `€${value.toLocaleString('es-ES')}`} />
                         <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155' }} formatter={(value: number) => `${value.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}`} />
                         <Legend />
-                        <Line type="monotone" dataKey="margen" stroke="#22d3ee" strokeWidth={2} />
+                        <Line type="monotone" dataKey="margen" stroke="#facc15" strokeWidth={2} />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
@@ -220,7 +293,7 @@ const App: React.FC = () => {
 
                 <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700">
                   <h4 className="text-xl font-semibold mb-4 text-slate-200 flex items-center gap-2"><ChartBarIcon />Datos de Transacciones (Capa Golden)</h4>
-                  <InteractiveTable data={SAMPLE_DATA} />
+                  <InteractiveTable data={filteredData} />
                 </div>
               </section>
             </>
