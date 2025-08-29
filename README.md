@@ -12,7 +12,7 @@ La aplicación está pensada para dos audiencias principales:
 
 Haz clic en el siguiente enlace para abrir y ejecutar la aplicación directamente en tu navegador. No requiere instalación.
 
-**[Abrir Visualizador en StackBlitz](https://vbwijoyvnzgithub-dyzq--5173--96435430.local-credentialless.webcontainer.io/)**
+**[Abrir Visualizador en StackBlitz](https://proyectoventastegnologia-ll5a--5173--96435430.local-credentialless.webcontainer.io)**
 
 > **Nota:** ¡Puedes lanzar el visualizador directamente en tu navegador! Si es la primera vez que usas StackBlitz, es posible que te pida iniciar sesión con tu cuenta de GitHub para sincronizar el entorno.
 
