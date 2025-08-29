@@ -42,3 +42,28 @@ La capa Golden se materializa en un dashboard con:
 ## 🏛️ Arquitectura del Pipeline
 
 Este proyecto implementa una arquitectura Medallion moderna y optimizada en costes:
+
+📦 BRONZE (GCS) ─────► 🥈 SILVER (BigQuery) ─────► 🥇 GOLD (BigQuery)
+Datos crudos (CSV) Datos limpios y Datos consolidados
+en Cloud Storage validados en tablas y enriquecidos para
+separadas. análisis de negocio.
+
+- **Capa Bronze (Fuente):** Los archivos CSV originales residen en Google Cloud Storage. No se duplican en BigQuery, ahorrando costes.
+- **Capa Silver (Validación):** Los datos de los CSV se cargan directamente en un conjunto de tablas en BigQuery, una por cada entidad de negocio (clientes, ventas, etc.). Aquí se realizan las primeras limpiezas y validaciones.
+- **Capa Gold (Análisis):** Se construye una única tabla consolidada (`gold_ventas_consolidadas`) que une toda la información de la capa Silver. Esta tabla está enriquecida con cálculos de negocio y sirve como fuente única de verdad para el dashboard y los reportes.
+
+## 🛠️ Stack Tecnológico
+
+La solución se compone de dos partes principales:
+
+#### **Frontend (Visualizador)**
+- **React:** Para construir la interfaz de usuario a través de componentes.
+- **TypeScript:** Para añadir seguridad de tipos y mejorar la robustez del código.
+- **Tailwind CSS:** Para un diseño rápido, moderno y responsive.
+- **Recharts:** Para la creación de los gráficos interactivos del dashboard.
+
+#### **Backend (Pipeline de Datos)**
+- **Google Cloud Storage (GCS):** Almacenamiento de los datos fuente (Capa Bronze).
+- **Google BigQuery:** Data Warehouse para las capas Silver y Gold.
+- **Apache Airflow:** Orquestación, programación y monitorización del pipeline ETL.
+- **Google Cloud Build:** Integración y Despliegue Continuo (CI/CD) para automatizar la puesta en producción de los DAGs.
